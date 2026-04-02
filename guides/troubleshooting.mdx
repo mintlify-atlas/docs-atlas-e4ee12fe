@@ -1,0 +1,148 @@
+---
+title: "Troubleshooting"
+description: "Solutions to common issues with the Datadog Synthetics CI GitHub Action."
+---
+
+<AccordionGroup>
+  <Accordion title="Missing API or APP keys">
+    **Error:** `Missing API or APP keys to initialize datadog-ci!`
+
+    The action requires both `api-key` and `app-key` to authenticate with Datadog. Check that:
+
+    1. `DD_API_KEY` and `DD_APP_KEY` are added as [encrypted secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository settings.
+    2. The secrets are referenced correctly in your workflow:
+
+    ```yaml
+    with:
+      api-key: ${{ secrets.DD_API_KEY }}
+      app-key: ${{ secrets.DD_APP_KEY }}
+    ```
+
+    Note the double braces and the `secrets.` prefix. A common mistake is omitting `secrets.` or using single braces.
+  </Accordion>
+
+  <Accordion title="Snake_case input names are not recognized">
+    **Error:** A message about renamed inputs, or the action fails to read your `api_key` / `app_key` values.
+
+    In version 3.0.0, all inputs were renamed from `snake_case` to `kebab-case` to follow GitHub Actions conventions. Update your workflow:
+
+    | Old name (v2 and earlier) | New name (v3+) |
+    |---------------------------|----------------|
+    | `api_key` | `api-key` |
+    | `app_key` | `app-key` |
+    | `config_path` | `config-path` |
+    | `batch_timeout` | `batch-timeout` |
+    | `datadog_site` | `datadog-site` |
+    | `fail_on_critical_errors` | `fail-on-critical-errors` |
+    | `fail_on_missing_tests` | `fail-on-missing-tests` |
+    | `fail_on_timeout` | `fail-on-timeout` |
+    | `public_ids` | `public-ids` |
+    | `selective_rerun` | `selective-rerun` |
+    | `test_search_query` | `test-search-query` |
+    | `junit_report` | `junit-report` |
+  </Accordion>
+
+  <Accordion title="No tests found or tests-not-found-count is greater than zero">
+    Tests are not running, or the `tests-not-found-count` output is greater than zero.
+
+    **If you are using test configuration files:**
+
+    - Verify that `.synthetics.json` files exist in your repository and are committed.
+    - Check that the `files` glob pattern matches their location. The default pattern is `{,!(node_modules)/**/}*.synthetics.json`. If your files are in a non-standard location, set `files` explicitly:
+
+      ```yaml
+      files: |
+        tests/**/*.synthetics.json
+      ```
+
+    **If you are using `public-ids`:**
+
+    - Verify that the public IDs are correct. You can find the public ID for a test on its detail page in Datadog — it has the format `abc-123-xyz`.
+    - Check that the tests exist in the Datadog organization associated with your API and application keys.
+  </Accordion>
+
+  <Accordion title="Config file not found">
+    **Error:** `Unable to parse config file! Please verify config path: <path>`
+
+    This error occurs when `config-path` is set but the file cannot be read. Check that:
+
+    - The path in `config-path` is correct relative to the root of your repository.
+    - The file is committed to the repository (it is not gitignored).
+    - Your workflow includes a `actions/checkout` step before the Datadog action so the file is present on the runner.
+
+    If you do not need a global config file, remove the `config-path` input entirely. The action only raises this error when `config-path` is explicitly set and the file cannot be found.
+  </Accordion>
+
+  <Accordion title="Tests timing out">
+    The CI batch times out before all tests complete.
+
+    The default `batch-timeout` is `1800000` milliseconds (30 minutes). If your tests regularly take longer, increase the timeout:
+
+    ```yaml
+    with:
+      api-key: ${{ secrets.DD_API_KEY }}
+      app-key: ${{ secrets.DD_APP_KEY }}
+      batch-timeout: '3600000'  # 60 minutes
+    ```
+
+    Also check the individual test execution times in Datadog to identify slow tests. Long-running tests may indicate a configuration issue in the test itself rather than a timeout setting problem.
+
+    The `timed-out-count` output reports how many results failed due to the batch timing out.
+  </Accordion>
+
+  <Accordion title="CI failing on transient errors">
+    Rate limits, authentication failures, or Datadog infrastructure issues are causing your CI job to fail.
+
+    These errors are typically intermittent and unrelated to your tests. Set `fail-on-critical-errors: 'false'` to make them non-blocking:
+
+    ```yaml
+    with:
+      api-key: ${{ secrets.DD_API_KEY }}
+      app-key: ${{ secrets.DD_APP_KEY }}
+      fail-on-critical-errors: 'false'
+    ```
+
+    With this setting, the CI job still reports the errors (visible in logs and in the `critical-errors-count` output) but does not fail the job. The default is `false`, so this is only needed if you or a config file has explicitly set it to `true`.
+  </Accordion>
+
+  <Accordion title="Tests not appearing in the expected Datadog organization">
+    Tests are running but results do not appear in the Datadog organization you expect, or you see authentication errors for the wrong region.
+
+    Set `datadog-site` to match the site where your organization is hosted:
+
+    | Site | `datadog-site` value |
+    |------|----------------------|
+    | US1 (default) | `datadoghq.com` |
+    | EU | `datadoghq.eu` |
+    | US3 | `us3.datadoghq.com` |
+    | US5 | `us5.datadoghq.com` |
+    | AP1 | `ap1.datadoghq.com` |
+    | US1-FED | `ddog-gov.com` |
+
+    ```yaml
+    with:
+      api-key: ${{ secrets.DD_API_KEY }}
+      app-key: ${{ secrets.DD_APP_KEY }}
+      datadog-site: 'datadoghq.eu'
+    ```
+
+    Your API and application keys must also belong to the same site.
+  </Accordion>
+
+  <Accordion title="Tunnel not connecting to private services">
+    Tests using the tunnel cannot reach your internal services.
+
+    Check the following:
+
+    1. **Tunnel feature is enabled** — Verify that the Continuous Testing tunnel feature is enabled for your Datadog organization. Contact your Datadog representative or check your [organization settings](https://app.datadoghq.com/synthetics/settings/continuous-testing).
+    2. **Firewall and network rules** — The tunnel process runs on the GitHub Actions runner and initiates an outbound connection to Datadog. Ensure outbound traffic to Datadog's endpoints is not blocked by your network policies.
+    3. **`tunnel` input is set** — Confirm that `tunnel: 'true'` is present in your workflow step.
+    4. **Service is reachable from the runner** — The tunnel forwards traffic from Datadog through the runner to your service. If the service is not reachable from the runner itself (for example, it requires a VPN that is not set up in the CI environment), the tunnel cannot reach it either.
+
+    For more information, see [Continuous Testing tunnel](https://docs.datadoghq.com/continuous_testing/environments/proxy_firewall_vpn#what-is-the-testing-tunnel).
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  If you cannot resolve an issue using the steps above, contact [Datadog Support](https://docs.datadoghq.com/help/).
+</Note>

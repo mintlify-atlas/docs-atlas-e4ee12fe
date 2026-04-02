@@ -1,0 +1,68 @@
+---
+title: "Continuous Testing tunnel"
+description: "Use the Continuous Testing tunnel to run Datadog Synthetic tests against internal or private environments."
+---
+
+The Continuous Testing tunnel creates a secure, encrypted connection between Datadog's testing infrastructure and your private environment. Tests are routed through this connection, allowing Datadog to reach services that are not exposed to the public internet — without opening inbound firewall rules.
+
+## When to use the tunnel
+
+Use the tunnel when your tests need to reach:
+
+- **Staging or preview environments** that are only accessible within your network
+- **Localhost** or services running on the CI runner itself
+- **VPN-protected services** that Datadog's managed locations cannot access
+- **Internal APIs or microservices** behind a corporate firewall
+
+<Warning>
+  The Continuous Testing tunnel requires the tunnel feature to be enabled on your Datadog account. Contact your Datadog representative or visit your [organization settings](https://app.datadoghq.com/synthetics/settings/continuous-testing) to confirm it is available.
+</Warning>
+
+## Enable the tunnel
+
+Set the `tunnel` input to `'true'` in your workflow step:
+
+```yaml
+- name: Run Datadog Synthetic tests
+  uses: DataDog/synthetics-ci-github-action@v4.0.0
+  with:
+    api-key: ${{ secrets.DD_API_KEY }}
+    app-key: ${{ secrets.DD_APP_KEY }}
+    tunnel: 'true'
+```
+
+The tunnel starts automatically when the action runs and shuts down after all tests complete.
+
+## Full workflow example
+
+```yaml
+name: Run Synthetic tests against staging
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  synthetics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{ secrets.DD_API_KEY }}
+          app-key: ${{ secrets.DD_APP_KEY }}
+          tunnel: 'true'
+          test-search-query: 'tag:staging'
+```
+
+<Note>
+  The tunnel is not recommended for tests targeting public URLs or production environments. Traffic is routed through the tunnel even when the destination is reachable without it, which adds latency and consumes tunnel capacity unnecessarily.
+</Note>
+
+## Further reading
+
+- [Continuous Testing tunnel — Datadog documentation](https://docs.datadoghq.com/continuous_testing/environments/proxy_firewall_vpn#what-is-the-testing-tunnel)

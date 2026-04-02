@@ -1,0 +1,103 @@
+---
+title: "JUnit reporting"
+description: "Generate JUnit XML reports from Datadog Synthetic test results for CI integration."
+---
+
+The `junit-report` input instructs the action to write a JUnit XML file after tests complete. JUnit is a standard report format supported by GitHub Actions, Jenkins, CircleCI, and most other CI systems. It lets your CI platform display individual test outcomes — pass, fail, or skip — directly in the pipeline UI.
+
+<Note>
+  If `junit-report` is not set, no JUnit file is generated. The input is optional and off by default.
+</Note>
+
+## Enable JUnit reporting
+
+Set `junit-report` to the filename you want the action to write:
+
+```yaml
+- name: Run Datadog Synthetic tests
+  uses: DataDog/synthetics-ci-github-action@v4.0.0
+  with:
+    api-key: ${{ secrets.DD_API_KEY }}
+    app-key: ${{ secrets.DD_APP_KEY }}
+    junit-report: 'junit-results.xml'
+```
+
+The file is written to the current working directory of the runner.
+
+## Upload the report as a workflow artifact
+
+Use the `actions/upload-artifact` step after the Datadog action to preserve the JUnit file for later inspection:
+
+```yaml
+name: Run Synthetic tests and upload JUnit report
+
+on:
+  push:
+
+jobs:
+  synthetics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{ secrets.DD_API_KEY }}
+          app-key: ${{ secrets.DD_APP_KEY }}
+          junit-report: 'junit-results.xml'
+
+      - name: Upload JUnit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-results
+          path: junit-results.xml
+```
+
+The `if: always()` condition ensures the artifact is uploaded even when tests fail, so you can inspect the report regardless of the job outcome.
+
+## Display results inline in pull request checks
+
+Combine `actions/upload-artifact` with a test reporting action to surface individual test results in the GitHub PR checks view. The example below uses [`mikepenz/action-junit-report`](https://github.com/mikepenz/action-junit-report):
+
+```yaml
+name: Run Synthetic tests with inline PR reporting
+
+on:
+  pull_request:
+
+jobs:
+  synthetics:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{ secrets.DD_API_KEY }}
+          app-key: ${{ secrets.DD_APP_KEY }}
+          junit-report: 'junit-results.xml'
+
+      - name: Publish test results to PR
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: 'junit-results.xml'
+
+      - name: Upload JUnit report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-results
+          path: junit-results.xml
+```
+
+The `checks: write` and `pull-requests: write` permissions are required for the reporting action to annotate the pull request.

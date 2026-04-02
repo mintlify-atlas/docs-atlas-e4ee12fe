@@ -1,0 +1,97 @@
+---
+title: "Action inputs"
+description: "All available inputs for the Datadog Synthetics CI GitHub Action."
+---
+
+<Warning>
+  Always store `api-key` and `app-key` as [GitHub encrypted secrets](https://docs.github.com/en/actions/reference/encrypted-secrets). Never hard-code credentials in your workflow files.
+</Warning>
+
+## Required inputs
+
+<ParamField path="api-key" type="string" required>
+  Your Datadog API key. Create this key in your Datadog organization and store it as a GitHub encrypted secret (for example, `secrets.DD_API_KEY`).
+</ParamField>
+
+<ParamField path="app-key" type="string" required>
+  Your Datadog application key. Create this key in your Datadog organization and store it as a GitHub encrypted secret (for example, `secrets.DD_APP_KEY`).
+</ParamField>
+
+## Optional inputs
+
+<ParamField path="batch-timeout" type="integer" default="1800000">
+  Timeout duration in milliseconds for the CI batch. When a batch times out, the CI job fails and no new test runs are triggered, but ongoing test runs complete normally. Defaults to 30 minutes.
+</ParamField>
+
+<ParamField path="config-path" type="string" default="datadog-ci.json">
+  Path to the global configuration file that configures `datadog-ci`. If the file does not exist at the default path and `config-path` is not explicitly set, the action is silent. If you explicitly set this input and the file is not found, the action fails.
+</ParamField>
+
+<ParamField path="datadog-site" type="string" default="datadoghq.com">
+  Your Datadog site. See [Datadog sites](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for the list of available values.
+</ParamField>
+
+<ParamField path="fail-on-critical-errors" type="boolean" default="false">
+  Fail the CI job if a critical error that is typically transient occurs, such as rate limits, authentication failures, or Datadog infrastructure issues.
+</ParamField>
+
+<ParamField path="fail-on-missing-tests" type="boolean" default="false">
+  Fail the CI job if the list of tests to run is empty or if some explicitly listed tests are missing.
+</ParamField>
+
+<ParamField path="fail-on-timeout" type="boolean" default="true">
+  Fail the CI job if the CI batch fails as timed out.
+</ParamField>
+
+<ParamField path="files" type="string" default="{,!(node_modules)/**/}*.synthetics.json">
+  Glob patterns to detect Synthetic test configuration files, separated by newlines. Multiple patterns are each matched independently. By default, all `*.synthetics.json` files are discovered except those inside `node_modules`.
+</ParamField>
+
+<ParamField path="junit-report" type="string">
+  Filename for a JUnit XML report. When set, the action generates a JUnit report at the specified path. No report is generated if this input is omitted.
+</ParamField>
+
+<ParamField path="locations" type="string">
+  Override the list of locations to run the tests from. Accepts newline-separated or comma-separated values. See the [Synthetics locations API](https://app.datadoghq.com/api/v1/synthetics/locations?only_public=true) for available location identifiers.
+</ParamField>
+
+<ParamField path="public-ids" type="string">
+  Public IDs of Synthetic tests to run, separated by newlines or commas. If not provided, tests are discovered through Synthetic test configuration files. Takes precedence over `test-search-query` and file discovery.
+</ParamField>
+
+<ParamField path="selective-rerun" type="boolean">
+  Whether to only rerun failed tests. If a test has already passed for a given commit, it is not rerun in subsequent CI batches. When not set, your [organization's default setting](https://app.datadoghq.com/synthetics/settings/continuous-testing) is used. Set to `false` to force full runs even when your organization enables selective rerun by default.
+</ParamField>
+
+<ParamField path="subdomain" type="string" default="app">
+  The custom subdomain to access your Datadog organization. For example, if your URL is `myorg.datadoghq.com`, the value is `myorg`.
+</ParamField>
+
+<ParamField path="test-search-query" type="string">
+  A search query to select which Synthetic tests to run. Use the [Synthetic Tests list page](https://app.datadoghq.com/synthetics/tests) search bar to craft your query, then copy and paste it here. Takes precedence over file discovery but is overridden by `public-ids`.
+</ParamField>
+
+<ParamField path="tunnel" type="boolean" default="false">
+  Use the [Continuous Testing tunnel](https://docs.datadoghq.com/continuous_testing/environments/proxy_firewall_vpn#what-is-the-testing-tunnel) to launch tests against internal environments not reachable from the public internet.
+</ParamField>
+
+<ParamField path="variables" type="string">
+  Override existing or inject new local and [global variables](https://docs.datadoghq.com/synthetics/platform/settings/?tab=specifyvalue#global-variables) in Synthetic tests as `KEY=VALUE` pairs. Separate multiple pairs with newlines or commas. For example: `START_URL=https://example.org,MY_VARIABLE=My title`.
+</ParamField>
+
+## Example
+
+```yaml
+- name: Run Datadog Synthetic tests
+  uses: DataDog/synthetics-ci-github-action@v4.0.0
+  with:
+    api-key: ${{ secrets.DD_API_KEY }}
+    app-key: ${{ secrets.DD_APP_KEY }}
+    datadog-site: datadoghq.com
+    test-search-query: 'tag:e2e-tests'
+    variables: 'START_URL=https://staging.example.com,ENV=staging'
+    fail-on-missing-tests: true
+    fail-on-critical-errors: true
+    batch-timeout: 900000
+    tunnel: false
+```

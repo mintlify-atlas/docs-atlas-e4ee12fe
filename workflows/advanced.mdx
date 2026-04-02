@@ -1,0 +1,122 @@
+---
+title: 'Advanced workflows'
+description: 'Advanced GitHub Actions workflow patterns using search queries, variable overrides, and custom configuration.'
+---
+
+Advanced workflows give you finer control over which tests run, what environment they target, and how results are consumed downstream. These patterns build on the basics covered in [Simple workflows](/workflows/simple).
+
+## Filter tests by tag
+
+Use a search query to run only the tests that match a specific tag. This avoids maintaining an explicit list of public IDs and lets you manage test membership directly in the Datadog UI by tagging tests.
+
+```yaml Run Synthetic tests by test tag
+name: Run Synthetic tests by test tag
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+          test-search-query: 'tag:e2e-tests'
+```
+
+Adding or removing a test from a CI run is as simple as updating the test's tags in Datadog — no workflow changes required.
+
+<Tip>
+  Build and validate your search query using the search bar on the [Synthetics Tests list page](https://app.datadoghq.com/synthetics/tests). The query syntax supports tags, test types, creators, and more. Copy the final query string directly into the `test-search-query` input.
+</Tip>
+
+## Override variables per environment
+
+Use the `variables` input to inject or override test variables at runtime. This lets a single set of Synthetic tests run against multiple environments (staging, production, etc.) by swapping URLs and credentials without duplicating tests.
+
+```yaml Run Synthetic tests using search query and variable overrides
+name: Run Synthetic tests using search query
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+          test-search-query: 'tag:staging'
+          variables: 'START_URL=https://staging.website.com,PASSWORD=stagingpassword'
+```
+
+Variables are passed as comma-separated `KEY=VALUE` pairs. They override any variables already defined in the test or in a global configuration file. Store sensitive values such as `PASSWORD` in [GitHub Actions secrets](https://docs.github.com/en/actions/reference/encrypted-secrets) and reference them with `${{secrets.MY_SECRET}}`.
+
+## Use a custom configuration file
+
+By default, the action looks for a `datadog-ci.json` file at the root of your repository. Use `config-path` to point to a different file — useful when you have multiple environments or teams with separate configurations.
+
+```yaml Run Synthetic tests with custom config
+name: Run Synthetic tests with custom config
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+          config-path: './global.config.json'
+```
+
+The global configuration file can set defaults for any option supported by `datadog-ci synthetics run-tests`, such as `failOnCriticalErrors`, `defaultTestOverrides`, and more. See the [datadog-ci configuration documentation](https://docs.datadoghq.com/continuous_testing/cicd_integrations/configuration/?tab=npm#global-configuration-file) for the full schema.
+
+## Use outputs in subsequent steps
+
+The action exposes several outputs you can consume in later steps — for example, to post a summary comment on a pull request, send a notification, or gate a deployment on test results.
+
+```yaml Run Synthetic tests and use outputs in a follow-up step
+name: Run Synthetic tests and report results
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        id: datadog-synthetics
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+      - name: Print test results
+        if: always()
+        run: |
+          echo "Batch URL: ${{ steps.datadog-synthetics.outputs.batch-url }}"
+          echo "Passed: ${{ steps.datadog-synthetics.outputs.passed-count }}"
+          echo "Failed: ${{ steps.datadog-synthetics.outputs.failed-count }}"
+```
+
+The `id` field on the action step is required to reference its outputs. Use `if: always()` on downstream steps to ensure they run even when tests fail. The full list of available outputs is:
+
+| Output | Description |
+|---|---|
+| `batch-url` | URL of the CI batch in Datadog |
+| `passed-count` | Number of results that passed |
+| `failed-count` | Number of results that failed |
+| `failed-non-blocking-count` | Number of failures that did not block CI |
+| `critical-errors-count` | Number of critical errors during the batch |
+| `previously-passed-count` | Results that already passed in a previous batch on the same commit |
+| `tests-not-found-count` | Tests that could not be found |
+| `tests-skipped-count` | Tests that were skipped |
+| `timed-out-count` | Results that failed due to batch timeout |
+| `raw-results` | Full `synthetics.Result[]` array as a JSON-encoded string |
+
+<Info>
+  By default, the action reports results to `datadoghq.com`. If your Datadog organization uses a different site (for example, `datadoghq.eu` or `us3.datadoghq.com`), set the `datadog-site` input to the correct site URL. See the [Datadog site documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for the full list of available sites.
+</Info>

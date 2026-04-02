@@ -1,0 +1,81 @@
+---
+title: "Action outputs"
+description: "GitHub Actions outputs produced by the Datadog Synthetics CI GitHub Action."
+---
+
+The action sets the following outputs after completing a test batch. Reference them in subsequent steps using `${{ steps.<step-id>.outputs.<output-name> }}`.
+
+<ResponseField name="batch-url" type="string">
+  The URL of the CI batch in Datadog, where you can view the full results.
+</ResponseField>
+
+<ResponseField name="critical-errors-count" type="number">
+  The number of critical errors that occurred during the CI batch, such as rate limits, authentication failures, or Datadog infrastructure issues.
+</ResponseField>
+
+<ResponseField name="failed-count" type="number">
+  The number of test results that failed during the CI batch.
+</ResponseField>
+
+<ResponseField name="failed-non-blocking-count" type="number">
+  The number of test results that failed during the CI batch without blocking the CI job.
+</ResponseField>
+
+<ResponseField name="passed-count" type="number">
+  The number of test results that passed during the CI batch.
+</ResponseField>
+
+<ResponseField name="previously-passed-count" type="number">
+  The number of test results that already passed in previous CI batches on the same commit. These tests are skipped when selective rerun is enabled.
+</ResponseField>
+
+<ResponseField name="tests-not-found-count" type="number">
+  The number of tests that could not be found when starting the CI batch.
+</ResponseField>
+
+<ResponseField name="tests-skipped-count" type="number">
+  The number of tests that were skipped when starting the CI batch.
+</ResponseField>
+
+<ResponseField name="timed-out-count" type="number">
+  The number of test results that failed due to the CI batch timing out.
+</ResponseField>
+
+<ResponseField name="raw-results" type="string">
+  The full `synthetics.Result[]` array as a JSON-encoded string. Parse it in subsequent steps using `fromJSON()`.
+</ResponseField>
+
+<Info>
+  `raw-results` is a JSON string, not an object. Use the GitHub Actions `fromJSON()` expression function to parse it: `${{ fromJSON(steps.datadog.outputs.raw-results) }}`.
+</Info>
+
+## Example
+
+```yaml
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Datadog Synthetic tests
+        id: datadog
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{ secrets.DD_API_KEY }}
+          app-key: ${{ secrets.DD_APP_KEY }}
+
+      - name: Print test results
+        if: always()
+        run: |
+          echo "Batch URL: ${{ steps.datadog.outputs.batch-url }}"
+          echo "Passed: ${{ steps.datadog.outputs.passed-count }}"
+          echo "Failed: ${{ steps.datadog.outputs.failed-count }}"
+          echo "Failed (non-blocking): ${{ steps.datadog.outputs.failed-non-blocking-count }}"
+          echo "Timed out: ${{ steps.datadog.outputs.timed-out-count }}"
+          echo "Skipped: ${{ steps.datadog.outputs.tests-skipped-count }}"
+          echo "Not found: ${{ steps.datadog.outputs.tests-not-found-count }}"
+          echo "Critical errors: ${{ steps.datadog.outputs.critical-errors-count }}"
+          echo "Previously passed: ${{ steps.datadog.outputs.previously-passed-count }}"
+```

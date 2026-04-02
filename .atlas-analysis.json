@@ -1,0 +1,88 @@
+{
+  "projectType": "general",
+  "projectName": "Datadog Synthetics CI GitHub Action",
+  "projectDescription": "A GitHub Action that triggers Datadog Synthetic tests from GitHub workflows as part of continuous testing pipelines.",
+  "theme": "aspen",
+  "primaryColor": "#7341af",
+  "lightColor": "#baa0d7",
+  "darkColor": "#e4daef",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Workflows",
+            "pages": [
+              "workflows/simple",
+              "workflows/advanced"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/inputs",
+              "configuration/outputs",
+              "configuration/global-config",
+              "configuration/test-files"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/continuous-testing-tunnel",
+              "guides/selective-rerun",
+              "guides/junit-reporting",
+              "guides/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Trigger Datadog Synthetic tests directly from GitHub Actions workflows",
+    "Select tests by public ID, search query, or auto-discovered test config files",
+    "Override test variables, locations, and timeouts per workflow run",
+    "Use the Continuous Testing tunnel to test against internal/private environments",
+    "Selective rerun — skip tests that already passed for the same commit",
+    "JUnit report generation for CI test result integration",
+    "Rich job outputs: pass/fail counts, batch URL, raw results JSON"
+  ],
+  "publicApiSurface": [
+    "input: api-key",
+    "input: app-key",
+    "input: public-ids",
+    "input: test-search-query",
+    "input: files",
+    "input: config-path",
+    "input: datadog-site",
+    "input: variables",
+    "input: locations",
+    "input: tunnel",
+    "input: selective-rerun",
+    "input: batch-timeout",
+    "input: fail-on-critical-errors",
+    "input: fail-on-missing-tests",
+    "input: fail-on-timeout",
+    "input: subdomain",
+    "input: junit-report",
+    "output: batch-url",
+    "output: passed-count",
+    "output: failed-count",
+    "output: failed-non-blocking-count",
+    "output: critical-errors-count",
+    "output: previously-passed-count",
+    "output: tests-not-found-count",
+    "output: tests-skipped-count",
+    "output: timed-out-count",
+    "output: raw-results"
+  ]
+}

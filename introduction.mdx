@@ -1,0 +1,61 @@
+---
+title: "Introduction"
+description: "Run Datadog Synthetic tests from your GitHub workflows with the Datadog Synthetics CI GitHub Action."
+---
+
+The Datadog Synthetics CI GitHub Action lets you trigger [Datadog Synthetic tests](https://docs.datadoghq.com/synthetics/) directly from your GitHub Actions workflows. Catch regressions before they reach production by running browser, API, and multistep tests as part of your CI/CD pipeline.
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Run tests by public ID" icon="vial">
+    Specify exact test IDs to run a curated set of Synthetic tests on every push or pull request.
+  </Card>
+  <Card title="Discover tests automatically" icon="magnifying-glass">
+    Let the action find and run all `.synthetics.json` test configuration files in your repository.
+  </Card>
+  <Card title="Search by tag or query" icon="tag">
+    Use Datadog search syntax to dynamically select which tests to run based on tags, names, or other attributes.
+  </Card>
+  <Card title="Test internal environments" icon="shield-halved">
+    Use the Continuous Testing tunnel to run tests against services that are not publicly accessible.
+  </Card>
+  <Card title="Selective reruns" icon="rotate">
+    Skip tests that already passed for the same commit to save time on subsequent CI runs.
+  </Card>
+  <Card title="Rich CI outputs" icon="chart-bar">
+    Access pass/fail counts, a direct batch URL, and raw results JSON as GitHub Actions outputs.
+  </Card>
+</CardGroup>
+
+## How it works
+
+The action wraps the [`datadog-ci synthetics run-tests`](https://docs.datadoghq.com/continuous_testing/cicd_integrations/configuration/?tab=npm#run-tests-command) command. When your workflow runs, the action:
+
+1. Authenticates with the Datadog API using your API and application keys
+2. Resolves which tests to run (by public ID, file discovery, or search query)
+3. Triggers the tests and waits for results
+4. Reports pass/fail outcomes and sets the CI job status accordingly
+
+## Navigate the docs
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Add the action to your workflow in minutes
+  </Card>
+  <Card title="Simple workflows" icon="code-branch" href="/workflows/simple">
+    Common workflow patterns and examples
+  </Card>
+  <Card title="Inputs reference" icon="sliders" href="/configuration/inputs">
+    All available action inputs with defaults and descriptions
+  </Card>
+  <Card title="Outputs reference" icon="arrow-right-from-bracket" href="/configuration/outputs">
+    GitHub Actions outputs produced by the action
+  </Card>
+  <Card title="Continuous Testing tunnel" icon="network-wired" href="/guides/continuous-testing-tunnel">
+    Test against private or internal environments
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/guides/troubleshooting">
+    Common issues and how to resolve them
+  </Card>
+</CardGroup>

@@ -1,0 +1,69 @@
+---
+title: "Test configuration files"
+description: "Define which Synthetic tests to run using .synthetics.json test configuration files."
+---
+
+Test configuration files (`.synthetics.json`) let you specify which Synthetic tests to run and override their settings on a per-test basis. The action discovers these files automatically using glob patterns.
+
+## Default glob pattern
+
+By default, the action searches for all files matching:
+
+```
+{,!(node_modules)/**/}*.synthetics.json
+```
+
+This matches every file ending in `.synthetics.json` in the repository root and all subdirectories, excluding `node_modules`.
+
+<Note>
+  The `node_modules` directory is excluded from the default pattern to avoid picking up test files installed as dependencies. If you use a custom `files` pattern, ensure your pattern also excludes `node_modules` if needed.
+</Note>
+
+## File format
+
+Each `.synthetics.json` file contains a `tests` array. Each entry requires a test `id` and accepts an optional `testOverrides` object to override settings for that specific run:
+
+```json test.synthetics.json
+{
+  "tests": [
+    {
+      "id": "abc-d3f-ghi",
+      "testOverrides": {
+        "startUrl": "https://staging.example.com",
+        "locations": ["aws:us-east-1"],
+        "variables": {
+          "MY_VARIABLE": "staging-value"
+        }
+      }
+    },
+    {
+      "id": "jkl-mn0-pqr"
+    }
+  ]
+}
+```
+
+The `id` field is the public ID of the Synthetic test visible in the Datadog UI. The `testOverrides` object is optional — if omitted, the test runs with its default configuration.
+
+## Using multiple glob patterns
+
+The `files` input accepts multiple glob patterns, one per line. All matched files are combined into a single list of tests to run:
+
+```yaml
+- name: Run Datadog Synthetic tests
+  uses: DataDog/synthetics-ci-github-action@v4.0.0
+  with:
+    api-key: ${{ secrets.DD_API_KEY }}
+    app-key: ${{ secrets.DD_APP_KEY }}
+    files: |
+      tests/e2e/**/*.synthetics.json
+      tests/smoke/**/*.synthetics.json
+```
+
+## Test selection precedence
+
+The action selects tests using the following order of precedence:
+
+1. **`public-ids`** — if set, only the listed tests are run; file discovery is skipped
+2. **`test-search-query`** — if set (and `public-ids` is not), tests matching the query are run; file discovery is skipped
+3. **File discovery** — if neither `public-ids` nor `test-search-query` is set, the action discovers tests from `.synthetics.json` files using the `files` glob pattern

@@ -1,0 +1,84 @@
+---
+title: 'Simple workflows'
+description: 'Common workflow patterns for running Datadog Synthetic tests in GitHub Actions.'
+---
+
+Simple workflows are the fastest way to get started with the Datadog Synthetics CI GitHub Action. They cover the most common use cases: running tests by public ID, auto-discovering test files in your repository, and triggering tests on pull requests.
+
+Before adding any of these workflows, store your Datadog API and application keys as [GitHub Actions secrets](https://docs.github.com/en/actions/reference/encrypted-secrets) named `DD_API_KEY` and `DD_APP_KEY`.
+
+## Run tests by public ID
+
+Use this approach when you want to run a fixed, explicit list of Synthetic tests. Each test is identified by its public ID, which you can find in the Datadog UI.
+
+```yaml Run Synthetic tests using public IDs
+name: Run Synthetic tests using the test public IDs
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+          public-ids: |
+            abc-d3f-ghi
+            jkl-mn0-pqr
+```
+
+**When to use:** You have a small, stable set of tests and want explicit control over which tests run in CI. Public IDs are stable and do not change when you rename or edit a test.
+
+## Auto-discover test files
+
+When no `public-ids` input is provided, the action automatically discovers Synthetic test configuration files in your repository using a glob pattern. This is the simplest setup — no list to maintain.
+
+```yaml Run Synthetic tests using an existing synthetics.json file
+name: Run Synthetic tests using an existing synthetics.json file
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+```
+
+**When to use:** Your team maintains `.synthetics.json` files alongside application code. Any file matching the default glob pattern is picked up automatically, so new tests are included without updating your workflow.
+
+<Note>
+  By default, the action scans for files matching `{,!(node_modules)/**/}*.synthetics.json` — every file ending with `.synthetics.json` except those inside `node_modules`. You can override this with the `files` input to specify a custom glob pattern.
+</Note>
+
+## Run tests on pull requests
+
+Trigger Synthetic tests on every pull request to catch regressions before merging. This workflow combines the `pull_request` event with file-based test discovery.
+
+```yaml Run Synthetic tests on pull requests
+name: Run Synthetic tests on pull requests
+on:
+  pull_request:
+jobs:
+  e2e_testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{secrets.DD_API_KEY}}
+          app-key: ${{secrets.DD_APP_KEY}}
+```
+
+**When to use:** You want automated end-to-end coverage on every PR. The workflow runs all tests discovered in your repository and fails the CI check if any test fails, blocking the merge.
+
+---
+
+For more complex patterns such as filtering by tag, overriding variables per environment, or using action outputs in subsequent steps, see [Advanced workflows](/workflows/advanced).

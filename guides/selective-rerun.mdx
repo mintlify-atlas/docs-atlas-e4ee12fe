@@ -1,0 +1,59 @@
+---
+title: "Selective rerun"
+description: "Skip tests that already passed for a given commit to speed up CI pipelines."
+---
+
+Selective rerun prevents redundant test execution by tracking which tests have already passed for a given commit SHA. When a test passed in a previous CI batch for the same commit, it is skipped in subsequent batches rather than run again.
+
+## When it's useful
+
+Selective rerun is most valuable when multiple CI triggers fire for the same commit. For example:
+
+- A push event triggers one workflow run
+- A pull request merge event triggers a second run on the same commit SHA
+
+Without selective rerun, both runs execute the full test suite. With selective rerun enabled, the second run skips any tests that already passed in the first run, reducing test execution time and resource usage.
+
+## Configure selective rerun
+
+Use the `selective-rerun` input to control the behavior:
+
+| Value | Behavior |
+|-------|----------|
+| `'true'` | Always use selective rerun, regardless of your organization's default |
+| `'false'` | Always run all tests, regardless of your organization's default |
+| _(omitted)_ | Use your organization's default setting in Datadog |
+
+<Info>
+  Your organization's default selective rerun setting can be configured at [Continuous Testing Settings](https://app.datadoghq.com/synthetics/settings/continuous-testing).
+</Info>
+
+## Example
+
+```yaml
+name: Run Synthetic tests with selective rerun
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  synthetics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Datadog Synthetic tests
+        uses: DataDog/synthetics-ci-github-action@v4.0.0
+        with:
+          api-key: ${{ secrets.DD_API_KEY }}
+          app-key: ${{ secrets.DD_APP_KEY }}
+          selective-rerun: 'true'
+```
+
+The `previously-passed-count` output reports how many tests were skipped because they already passed for the current commit.
+
+<Tip>
+  Set `selective-rerun: 'false'` to force a full test run even when your organization's default enables selective rerun. This is useful for scheduled runs or release pipelines where you always want complete coverage.
+</Tip>
